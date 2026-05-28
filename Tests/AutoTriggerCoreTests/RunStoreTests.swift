@@ -35,3 +35,28 @@ private func tempDBURL() throws -> URL {
     #expect(rows[1].exitCode == 0)
     #expect(rows[0].stderr == "boom")
 }
+
+@Test func concurrentInsertsAllSucceed() throws {
+    let url = try tempDBURL()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let store = try RunStore(path: url.path, retentionPerTask: 10_000, maxOutputChars: 10_000)
+
+    let n = 200
+    let errorCount = LockedCounter()
+    DispatchQueue.concurrentPerform(iterations: n) { i in
+        let now = Date()
+        let rec = RunRecord(taskLabel: "com.x.job", startedAt: now, finishedAt: now,
+                            exitCode: 0, stdout: "i=\(i)", stderr: "")
+        do { try store.insert(rec) } catch { errorCount.increment() }
+    }
+
+    #expect(errorCount.value == 0)
+    #expect(try store.recent(taskLabel: "com.x.job", limit: 100_000).count == n)
+}
+
+final class LockedCounter: @unchecked Sendable {
+    private var n = 0
+    private let lock = NSLock()
+    func increment() { lock.lock(); n += 1; lock.unlock() }
+    var value: Int { lock.lock(); defer { lock.unlock() }; return n }
+}
