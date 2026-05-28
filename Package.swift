@@ -5,13 +5,18 @@ let package = Package(
     name: "AutoTriggerCore",
     platforms: [.macOS(.v13)],
     products: [
-        .library(name: "AutoTriggerCore", targets: ["AutoTriggerCore"])
+        .library(name: "AutoTriggerCore", targets: ["AutoTriggerCore"]),
+        .executable(name: "autotrigger-heartbeatd", targets: ["autotrigger-heartbeatd"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-testing.git", from: "0.11.0"),
     ],
     targets: [
         .target(name: "AutoTriggerCore"),
+        .executableTarget(
+            name: "autotrigger-heartbeatd",
+            dependencies: ["AutoTriggerCore"]
+        ),
         .testTarget(name: "AutoTriggerCoreTests", dependencies: [
             "AutoTriggerCore",
             .product(name: "Testing", package: "swift-testing"),
