@@ -55,6 +55,60 @@ public final class RunStore {
         }
     }
 
+    public func insert(_ record: RunRecord) throws {
+        let sql = """
+            INSERT INTO runs (task_label, started_at, finished_at, exit_code, stdout, stderr)
+            VALUES (?, ?, ?, ?, ?, ?);
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw RunStoreError.prepare(lastError)
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        let out = RunRecord.truncate(record.stdout, max: maxOutputChars)
+        let err = RunRecord.truncate(record.stderr, max: maxOutputChars)
+        sqlite3_bind_text(stmt, 1, record.taskLabel, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_double(stmt, 2, record.startedAt.timeIntervalSince1970)
+        sqlite3_bind_double(stmt, 3, record.finishedAt.timeIntervalSince1970)
+        sqlite3_bind_int(stmt, 4, record.exitCode)
+        sqlite3_bind_text(stmt, 5, out, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 6, err, -1, SQLITE_TRANSIENT)
+
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw RunStoreError.exec(lastError) }
+        try pruneRetention(taskLabel: record.taskLabel)
+    }
+
+    public func recent(taskLabel: String, limit: Int) throws -> [RunRecord] {
+        let sql = """
+            SELECT task_label, started_at, finished_at, exit_code, stdout, stderr
+            FROM runs WHERE task_label = ? ORDER BY id DESC LIMIT ?;
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw RunStoreError.prepare(lastError)
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, taskLabel, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int(stmt, 2, Int32(limit))
+
+        var out: [RunRecord] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            out.append(RunRecord(
+                taskLabel: String(cString: sqlite3_column_text(stmt, 0)),
+                startedAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 1)),
+                finishedAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 2)),
+                exitCode: sqlite3_column_int(stmt, 3),
+                stdout: String(cString: sqlite3_column_text(stmt, 4)),
+                stderr: String(cString: sqlite3_column_text(stmt, 5))
+            ))
+        }
+        return out
+    }
+
+    /// Stub for now — filled in Task 5. Keeps insert() compiling.
+    func pruneRetention(taskLabel: String) throws {}
+
     private func queryString(_ sql: String) throws -> String {
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
