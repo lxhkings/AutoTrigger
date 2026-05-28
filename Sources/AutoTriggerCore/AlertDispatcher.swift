@@ -29,7 +29,7 @@ public struct AlertDispatcher: Sendable {
             } catch {
                 lastError = error
                 if attempt < maxAttempts, retryDelay > 0 {
-                    try? await Task.sleep(nanoseconds: UInt64(retryDelay * 1_000_000_000))
+                    try await Task.sleep(nanoseconds: UInt64(retryDelay * 1_000_000_000))
                 }
             }
         }
