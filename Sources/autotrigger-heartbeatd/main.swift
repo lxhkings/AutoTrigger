@@ -6,7 +6,13 @@ import AutoTriggerCore
 // an alert event for overdue tasks. Alert delivery is handled by the alert layer.
 
 let storePath = NSString(string: "~/Library/Application Support/AutoTrigger/runs.sqlite").expandingTildeInPath
-let store = try RunStore(path: storePath, retentionPerTask: 200, maxOutputChars: 10_000)
+let store: RunStore
+do {
+    store = try RunStore(path: storePath, retentionPerTask: 200, maxOutputChars: 10_000)
+} catch {
+    fputs("autotrigger-heartbeatd: failed to open RunStore: \(error)\n", stderr)
+    exit(1)
+}
 let evaluator = HeartbeatEvaluator()
 let sleepTracker = SleepTracker()
 sleepTracker.startObserving()
