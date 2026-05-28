@@ -60,3 +60,32 @@ final class LockedCounter: @unchecked Sendable {
     func increment() { lock.lock(); n += 1; lock.unlock() }
     var value: Int { lock.lock(); defer { lock.unlock() }; return n }
 }
+
+@Test func retentionKeepsOnlyLastNPerTask() throws {
+    let url = try tempDBURL()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let store = try RunStore(path: url.path, retentionPerTask: 5, maxOutputChars: 10_000)
+
+    let base = Date(timeIntervalSince1970: 0)
+    for i in 0..<12 {
+        let t = base.addingTimeInterval(Double(i))
+        try store.insert(RunRecord(taskLabel: "com.x.job", startedAt: t, finishedAt: t,
+                                   exitCode: Int32(i), stdout: "", stderr: ""))
+    }
+
+    let rows = try store.recent(taskLabel: "com.x.job", limit: 100)
+    #expect(rows.count == 5)                 // pruned to N
+    #expect(rows.map(\.exitCode) == [11, 10, 9, 8, 7]) // newest 5 kept
+}
+
+@Test func retentionIsPerTaskNotGlobal() throws {
+    let url = try tempDBURL()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let store = try RunStore(path: url.path, retentionPerTask: 2, maxOutputChars: 10_000)
+    let t = Date(timeIntervalSince1970: 0)
+    for i in 0..<3 { try store.insert(RunRecord(taskLabel: "a", startedAt: t.addingTimeInterval(Double(i)), finishedAt: t, exitCode: 0, stdout: "", stderr: "")) }
+    for i in 0..<3 { try store.insert(RunRecord(taskLabel: "b", startedAt: t.addingTimeInterval(Double(i)), finishedAt: t, exitCode: 0, stdout: "", stderr: "")) }
+
+    #expect(try store.recent(taskLabel: "a", limit: 100).count == 2)
+    #expect(try store.recent(taskLabel: "b", limit: 100).count == 2)
+}

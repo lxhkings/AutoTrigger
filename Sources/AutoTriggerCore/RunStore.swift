@@ -106,8 +106,22 @@ public final class RunStore {
         return out
     }
 
-    /// Stub for now — filled in Task 5. Keeps insert() compiling.
-    func pruneRetention(taskLabel: String) throws {}
+    /// Deletes all but the newest `retentionPerTask` rows for one task.
+    func pruneRetention(taskLabel: String) throws {
+        let sql = """
+            DELETE FROM runs WHERE task_label = ?1 AND id NOT IN (
+                SELECT id FROM runs WHERE task_label = ?1 ORDER BY id DESC LIMIT ?2
+            );
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw RunStoreError.prepare(lastError)
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, taskLabel, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int(stmt, 2, Int32(retentionPerTask))
+        guard sqlite3_step(stmt) == SQLITE_DONE else { throw RunStoreError.exec(lastError) }
+    }
 
     private func queryString(_ sql: String) throws -> String {
         var stmt: OpaquePointer?
