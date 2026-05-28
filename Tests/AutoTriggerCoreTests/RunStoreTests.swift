@@ -89,3 +89,18 @@ final class LockedCounter: @unchecked Sendable {
     #expect(try store.recent(taskLabel: "a", limit: 100).count == 2)
     #expect(try store.recent(taskLabel: "b", limit: 100).count == 2)
 }
+
+@Test func oversizedOutputIsTruncatedInStore() throws {
+    let url = try tempDBURL()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let store = try RunStore(path: url.path, retentionPerTask: 200, maxOutputChars: 100)
+
+    let huge = String(repeating: "z", count: 5_000)
+    let t = Date(timeIntervalSince1970: 0)
+    try store.insert(RunRecord(taskLabel: "com.x.job", startedAt: t, finishedAt: t,
+                               exitCode: 0, stdout: huge, stderr: huge))
+
+    let row = try store.recent(taskLabel: "com.x.job", limit: 1)[0]
+    #expect(row.stdout.count <= 100 + RunRecord.truncationMarker.count)
+    #expect(row.stdout.hasSuffix(RunRecord.truncationMarker))
+}
