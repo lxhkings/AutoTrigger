@@ -49,7 +49,7 @@ public final class RunStore {
 
     private var lastError: String { String(cString: sqlite3_errmsg(db)) }
 
-    func exec(_ sql: String) throws {
+    private func exec(_ sql: String) throws {
         guard sqlite3_exec(db, sql, nil, nil, nil) == SQLITE_OK else {
             throw RunStoreError.exec(lastError)
         }
@@ -107,7 +107,7 @@ public final class RunStore {
     }
 
     /// Deletes all but the newest `retentionPerTask` rows for one task.
-    func pruneRetention(taskLabel: String) throws {
+    private func pruneRetention(taskLabel: String) throws {
         let sql = """
             DELETE FROM runs WHERE task_label = ?1 AND id NOT IN (
                 SELECT id FROM runs WHERE task_label = ?1 ORDER BY id DESC LIMIT ?2
