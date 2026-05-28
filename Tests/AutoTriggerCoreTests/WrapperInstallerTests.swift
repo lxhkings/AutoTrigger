@@ -51,3 +51,33 @@ private func programArguments(at url: URL) throws -> [String] {
     let backedUp = try installer.backup.restore(key: plist.path)
     #expect(backedUp == originalBytes)
 }
+
+@Test func installThenUninstallRestoresByteForByte() throws {
+    let (installer, root) = try makeInstaller()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let plist = root.appendingPathComponent("job.plist")
+    try writePlist(at: plist, programArguments: ["/bin/bash", "/x/run.sh", "--flag"])
+    let originalBytes = try Data(contentsOf: plist)
+
+    try installer.installPlist(at: plist)
+    #expect(try Data(contentsOf: plist) != originalBytes) // proves install mutated it
+
+    try installer.uninstallPlist(at: plist)
+    let restored = try Data(contentsOf: plist)
+
+    #expect(restored == originalBytes) // CRITICAL: exact restore
+    let wrapper = PlistWrapper(wrapperPath: installer.wrapperPath)
+    #expect(try wrapper.isWrapped(restored) == false) // no orphaned wrapper ref
+}
+
+@Test func uninstallWithoutBackupIsNoOp() throws {
+    let (installer, root) = try makeInstaller()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let plist = root.appendingPathComponent("job.plist")
+    try writePlist(at: plist, programArguments: ["/bin/bash", "/x/run.sh"])
+    let before = try Data(contentsOf: plist)
+
+    try installer.uninstallPlist(at: plist) // never installed → nothing to restore
+
+    #expect(try Data(contentsOf: plist) == before) // unchanged, no crash
+}
