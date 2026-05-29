@@ -25,27 +25,29 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PW" build.keychain
           rm cert.p12
 
+      - name: Install xcodegen
+        run: brew install xcodegen
+
       - name: Build .app
         run: |
-          # DEPENDENCY: the menubar app target (separate plan) produces AutoTrigger.app.
-          # Once it exists, replace this with the real build, e.g.:
-          #   xcodebuild -scheme AutoTrigger -configuration Release \
-          #     -derivedDataPath build CODE_SIGNING_ALLOWED=NO
-          # and set APP_PATH to the built bundle.
-          echo "::error::Build .app step requires the menubar app target (see app-target plan)"
-          exit 1
+          cd App
+          xcodegen generate
+          xcodebuild -project AutoTrigger.xcodeproj -scheme AutoTrigger \
+            -configuration Release -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build
+          echo "APP_PATH=$(pwd)/build/Build/Products/Release/AutoTrigger.app" >> "$GITHUB_ENV"
 
       - name: Codesign (Developer ID, hardened runtime)
         env:
           IDENTITY: ${{ secrets.DEVELOPER_ID_IDENTITY }}
         run: |
           codesign --force --deep --options runtime --timestamp \
-            --sign "$IDENTITY" "build/AutoTrigger.app"
-          codesign --verify --strict --verbose=2 "build/AutoTrigger.app"
+            --sign "$IDENTITY" "${{ env.APP_PATH }}"
+          codesign --verify --strict --verbose=2 "${{ env.APP_PATH }}"
 
       - name: Package DMG
         run: |
-          hdiutil create -volname AutoTrigger -srcfolder "build/AutoTrigger.app" \
+          hdiutil create -volname AutoTrigger -srcfolder "${{ env.APP_PATH }}" \
             -ov -format UDZO "AutoTrigger.dmg"
 
       - name: Notarize + staple
