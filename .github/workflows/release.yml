@@ -1,0 +1,67 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Import Developer ID certificate
+        env:
+          CERT_B64: ${{ secrets.DEVELOPER_ID_CERT_P12_BASE64 }}
+          CERT_PW: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+          KC_PW: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          echo "$CERT_B64" | base64 --decode > cert.p12
+          security create-keychain -p "$KC_PW" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KC_PW" build.keychain
+          security import cert.p12 -k build.keychain -P "$CERT_PW" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PW" build.keychain
+          rm cert.p12
+
+      - name: Build .app
+        run: |
+          # DEPENDENCY: the menubar app target (separate plan) produces AutoTrigger.app.
+          # Once it exists, replace this with the real build, e.g.:
+          #   xcodebuild -scheme AutoTrigger -configuration Release \
+          #     -derivedDataPath build CODE_SIGNING_ALLOWED=NO
+          # and set APP_PATH to the built bundle.
+          echo "::error::Build .app step requires the menubar app target (see app-target plan)"
+          exit 1
+
+      - name: Codesign (Developer ID, hardened runtime)
+        env:
+          IDENTITY: ${{ secrets.DEVELOPER_ID_IDENTITY }}
+        run: |
+          codesign --force --deep --options runtime --timestamp \
+            --sign "$IDENTITY" "build/AutoTrigger.app"
+          codesign --verify --strict --verbose=2 "build/AutoTrigger.app"
+
+      - name: Package DMG
+        run: |
+          hdiutil create -volname AutoTrigger -srcfolder "build/AutoTrigger.app" \
+            -ov -format UDZO "AutoTrigger.dmg"
+
+      - name: Notarize + staple
+        env:
+          APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          APP_PW: ${{ secrets.NOTARY_APP_PASSWORD }}
+        run: |
+          xcrun notarytool submit "AutoTrigger.dmg" \
+            --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APP_PW" --wait
+          xcrun stapler staple "AutoTrigger.dmg"
+          xcrun stapler validate "AutoTrigger.dmg"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AutoTrigger.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
