@@ -8,6 +8,10 @@ import AutoTriggerCore
 let storePath = NSString(string: "~/Library/Application Support/AutoTrigger/runs.sqlite").expandingTildeInPath
 let store: RunStore
 do {
+    try FileManager.default.createDirectory(
+        atPath: (storePath as NSString).deletingLastPathComponent,
+        withIntermediateDirectories: true
+    )
     store = try RunStore(path: storePath, retentionPerTask: 200, maxOutputChars: 10_000)
 } catch {
     fputs("autotrigger-heartbeatd: failed to open RunStore: \(error)\n", stderr)
