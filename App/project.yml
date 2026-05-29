@@ -1,0 +1,33 @@
+name: AutoTrigger
+options:
+  bundleIdPrefix: com.autotrigger
+  deploymentTarget:
+    macOS: "13.0"
+packages:
+  AutoTriggerCore:
+    path: ..
+targets:
+  AutoTrigger:
+    type: application
+    platform: macOS
+    sources:
+      - path: AutoTrigger
+    dependencies:
+      - package: AutoTriggerCore
+        product: AutoTriggerCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.autotrigger.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_LSUIElement: YES
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+schemes:
+  AutoTrigger:
+    build:
+      targets:
+        AutoTrigger: all
+    run:
+      config: Debug
