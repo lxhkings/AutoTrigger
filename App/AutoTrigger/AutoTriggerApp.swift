@@ -19,6 +19,3 @@ struct AutoTriggerApp: App {
         }
     }
 }
-
-// TEMP stub — replaced by SettingsView.swift in Task 9
-struct SettingsView: View { @ObservedObject var model: MenuBarViewModel; var body: some View { Text("Settings") } }
