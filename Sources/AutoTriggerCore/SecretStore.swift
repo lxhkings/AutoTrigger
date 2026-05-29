@@ -8,6 +8,15 @@ public protocol SecretStore: Sendable {
     func delete(_ key: String) throws
 }
 
+/// UserDefaults-backed store — avoids Keychain prompts for non-sensitive data.
+public final class UserDefaultsSecretStore: SecretStore, @unchecked Sendable {
+    private let defaults: UserDefaults
+    public init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+    public func set(_ value: String, for key: String) throws { defaults.set(value, forKey: key) }
+    public func get(_ key: String) throws -> String? { defaults.string(forKey: key) }
+    public func delete(_ key: String) throws { defaults.removeObject(forKey: key) }
+}
+
 public final class InMemorySecretStore: SecretStore, @unchecked Sendable {
     private var storage: [String: String] = [:]
     private let lock = NSLock()

@@ -4,59 +4,64 @@ import AutoTriggerCore
 
 struct DashboardView: View {
     @ObservedObject var model: MenuBarViewModel
+    @Environment(\.openSettings) private var openSettings
+    @State private var selectedTaskID: String?
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if model.rows.isEmpty {
-                    Text("No monitored tasks.\nAdd one in Settings.")
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(model.rows) { row in
-                        NavigationLink {
-                            TaskDetailView(model: model, taskID: row.id)
-                        } label: {
-                            HStack {
-                                Image(systemName: row.health.symbolName)
-                                    .foregroundStyle(row.health.tint)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(row.task.displayName)
-                                    Text(lastRunText(row.lastRun))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+        VStack(spacing: 0) {
+            if let selectedTaskID {
+                TaskDetailView(model: model, taskID: selectedTaskID, onBack: {
+                    self.selectedTaskID = nil
+                })
+            } else if model.rows.isEmpty {
+                Text("暂无监控任务\n请在设置中添加")
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 200)
+            } else {
+                List(model.rows) { row in
+                    Button {
+                        selectedTaskID = row.id
+                    } label: {
+                        HStack {
+                            Image(systemName: row.health.symbolName)
+                                .foregroundStyle(row.health.tint)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(row.task.displayName)
+                                Text(lastRunText(row.lastRun))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
                         }
                     }
-                }
-            }
-            .frame(minWidth: 320, minHeight: 260)
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    Button("Refresh") { model.refresh() }
+                    .buttonStyle(.plain)
                 }
             }
         }
+        .frame(minWidth: 320, minHeight: 260)
+
         Divider()
+
         HStack {
             #if DEBUG
-            Button("Seed demo") { model.seedDemoRuns() }
+            Button("演示数据") { model.seedDemoRuns() }
             #endif
-            Button("Settings…") {
-                NSApp.activate(ignoringOtherApps: true)
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-            }
+            Button("刷新") { model.refresh() }
+            Button("设置…") { openSettings() }
             Spacer()
-            Button("Quit") { NSApplication.shared.terminate(nil) }
+            Button("退出") { NSApplication.shared.terminate(nil) }
         }
         .padding(8)
     }
 
     private func lastRunText(_ date: Date?) -> String {
-        guard let date else { return "never run" }
+        guard let date else { return "从未运行" }
         let f = RelativeDateTimeFormatter()
-        return "last run " + f.localizedString(for: date, relativeTo: Date())
+        f.locale = Locale(identifier: "zh_CN")
+        return "上次运行 " + f.localizedString(for: date, relativeTo: Date())
     }
 }

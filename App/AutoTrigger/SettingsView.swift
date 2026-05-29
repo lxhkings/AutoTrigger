@@ -8,9 +8,9 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             TasksSettings(model: model)
-                .tabItem { Label("Tasks", systemImage: "list.bullet") }
+                .tabItem { Label("任务", systemImage: "list.bullet") }
             WebhookSettings(model: model)
-                .tabItem { Label("Alerts", systemImage: "bell") }
+                .tabItem { Label("告警", systemImage: "bell") }
         }
         .frame(width: 480, height: 380)
         .padding()
@@ -39,14 +39,14 @@ private struct TasksSettings: View {
                 }
             }
             Divider()
-            Text("Add task").font(.headline)
-            TextField("Task label (RunStore id)", text: $id)
-            TextField("Display name", text: $name)
+            Text("添加任务").font(.headline)
+            TextField("任务标识", text: $id)
+            TextField("显示名称", text: $name)
             HStack {
-                TextField("Interval (min)", text: $intervalMinutes).frame(width: 120)
-                TextField("Grace (min)", text: $graceMinutes).frame(width: 120)
+                TextField("间隔（分钟）", text: $intervalMinutes).frame(width: 120)
+                TextField("宽限（分钟）", text: $graceMinutes).frame(width: 120)
             }
-            Button("Add") {
+            Button("添加") {
                 guard !id.isEmpty,
                       let interval = Double(intervalMinutes),
                       let grace = Double(graceMinutes) else { return }
@@ -70,16 +70,16 @@ private struct WebhookSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Alert webhook URL").font(.headline)
-            Text("Point this at Slack / ntfy / Pushover. Stored in the Keychain.")
+            Text("告警 Webhook 地址").font(.headline)
+            Text("指向 Slack / ntfy / Pushover 等服务，存储在钥匙串中")
                 .font(.caption).foregroundStyle(.secondary)
             TextField("https://…", text: $url)
             HStack {
-                Button("Save") {
+                Button("保存") {
                     model.setWebhookURL(url)
                     saved = true
                 }
-                if saved { Text("Saved").foregroundStyle(.green).font(.caption) }
+                if saved { Text("已保存").foregroundStyle(.green).font(.caption) }
             }
             Spacer()
         }

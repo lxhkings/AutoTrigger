@@ -25,7 +25,7 @@ final class MenuBarViewModel: ObservableObject {
         runStore: RunStore? = try? RunStore(
             path: AutoTriggerPaths.runStorePath, retentionPerTask: 200, maxOutputChars: 10_000
         ),
-        secretStore: SecretStore = KeychainSecretStore()
+        secretStore: SecretStore = UserDefaultsSecretStore()
     ) {
         self.taskStore = taskStore
         self.runStore = runStore

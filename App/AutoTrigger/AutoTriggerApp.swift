@@ -11,6 +11,7 @@ struct AutoTriggerApp: App {
             DashboardView(model: model)
         } label: {
             Image(systemName: model.aggregate.symbolName)
+                .renderingMode(.template)
         }
         .menuBarExtraStyle(.window)
 

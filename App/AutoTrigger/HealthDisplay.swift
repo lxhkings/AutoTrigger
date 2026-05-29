@@ -22,10 +22,10 @@ extension TaskHealth {
 
     var label: String {
         switch self {
-        case .ok:       return "OK"
-        case .neverRan: return "Never ran"
-        case .overdue:  return "Overdue"
-        case .failed:   return "Failed"
+        case .ok:       return "正常"
+        case .neverRan: return "未运行"
+        case .overdue:  return "逾期"
+        case .failed:   return "失败"
         }
     }
 }

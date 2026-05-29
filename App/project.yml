@@ -2,7 +2,7 @@ name: AutoTrigger
 options:
   bundleIdPrefix: com.autotrigger
   deploymentTarget:
-    macOS: "13.0"
+    macOS: "14.0"
 packages:
   AutoTriggerCore:
     path: ..
@@ -23,7 +23,7 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSUIElement: YES
         SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "13.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
 schemes:
   AutoTrigger:
     build:

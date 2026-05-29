@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "AutoTriggerCore",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v14)],
     products: [
         .library(name: "AutoTriggerCore", targets: ["AutoTriggerCore"]),
         .executable(name: "autotrigger-heartbeatd", targets: ["autotrigger-heartbeatd"]),
