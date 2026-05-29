@@ -25,6 +25,9 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PW" build.keychain
           rm cert.p12
 
+      - name: Test
+        run: swift test
+
       - name: Install xcodegen
         run: brew install xcodegen
 
