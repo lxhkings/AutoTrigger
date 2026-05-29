@@ -61,7 +61,7 @@ final class MenuBarViewModel: ObservableObject {
     func removeTask(id: String) { try? taskStore.remove(id: id); refresh() }
 
     // MARK: Webhook secret
-    func webhookURL() -> String { (try? secretStore.get(SecretKeys.webhookURL)) ?? nil ?? "" }
+    func webhookURL() -> String { (try? secretStore.get(SecretKeys.webhookURL)) ?? "" }
     func setWebhookURL(_ value: String) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
